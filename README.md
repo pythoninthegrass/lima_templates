@@ -6,12 +6,9 @@
 ## Quickstart
 ```bash
 # install
-brew install lima
+brew install lima socket_vmnet
 
-# install socket_vmnet
-brew install socket_vmnet
-
-# Set up the sudoers file for launching socket_vmnet from Lima
+# setup the sudoers file for launching socket_vmnet from lima
 limactl sudoers >etc_sudoers.d_lima
 sudo install -o root etc_sudoers.d_lima /etc/sudoers.d/lima
 
