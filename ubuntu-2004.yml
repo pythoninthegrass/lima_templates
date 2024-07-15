@@ -1,0 +1,74 @@
+# limactl start ubuntu-2004.yml --tty=false
+---
+images:
+  # Try to use release-yyyyMMdd image if available. Note that release-yyyyMMdd will be removed after several months.
+  - location: "https://cloud-images.ubuntu.com/releases/focal/release-20240513/ubuntu-20.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
+  - location: "https://cloud-images.ubuntu.com/releases/focal/release-20240513/ubuntu-20.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+  # Fallback to the latest release image.
+  # Hint: run `limactl prune` to invalidate the cache
+  - location: "https://cloud-images.ubuntu.com/releases/focal/release/ubuntu-20.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
+  - location: "https://cloud-images.ubuntu.com/releases/focal/release/ubuntu-20.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+
+# https://lima-vm.io/docs/config/
+
+vmType: vz
+cpus: 2                 # default: 4
+memory: 2GiB            # default: 4GiB
+disk: 30GiB             # default: 100GiB
+networks:
+  - lima: shared
+    interface: en0
+mountType: virtiofs
+mounts:
+  - location: "~"
+    writable: true
+  - location: "/tmp/lima"
+    writable: true
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      command -v pip >/dev/null 2>&1 && exit 0
+      export DEBIAN_FRONTEND=noninteractive
+      sudo apt install -yqq --no-install-recommends \
+        build-essential \
+        python3-dev \
+        python3-pip
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      command -v ansible >/dev/null 2>&1 && exit 0
+      export PIP_NO_CACHE_DIR=off
+      export PIP_DISABLE_PIP_VERSION_CHECK=on
+      export PIP_NO_WARN_SCRIPT_LOCATION=true
+      python3 -m pip install ansible ansible-lint
+
+probes:
+  - script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
+      if ! timeout 30s bash -c "until command -v pip >/dev/null 2>&1; do sleep 3; done"; then
+        echo >&2 "pip is not installed yet"
+        exit 1
+      fi
+      if ! timeout 30s bash -c "until command -v ansible >/dev/null 2>&1; do sleep 3; done"; then
+        echo >&2 "ansible is not installed yet"
+        exit 1
+      fi
+    hint: |
+      See "/var/log/cloud-init-output.log" in the guest
+
+message: |
+  To test ansible's connection from the host, run the following commands:
+  ------
+  guestip=$(limactl shell ubuntu-2004 ip a show en0 | awk '/inet/ {print $2; exit}' | cut -d/ -f1)
+  ansible all -i $guestip, -m ping -u lima
+  ------
