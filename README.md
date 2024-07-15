@@ -9,8 +9,8 @@
 brew install lima socket_vmnet
 
 # setup the sudoers file for launching socket_vmnet from lima
-limactl sudoers >etc_sudoers.d_lima
-sudo install -o root etc_sudoers.d_lima /etc/sudoers.d/lima
+limactl sudoers > /tmp/etc_sudoers.d_lima
+sudo install -o root /tmp/etc_sudoers.d_lima /etc/sudoers.d/lima
 
 # create alias
 echo "alias lc='limactl'" >> ~/.bashrc
